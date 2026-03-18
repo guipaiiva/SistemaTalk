@@ -161,6 +161,12 @@ def dashboard():
     return FileResponse(os.path.join(FRONTEND_DIR, "dashboard.html"))
 
 
+@app.get("/usuarios", include_in_schema=False)
+def pagina_usuarios():
+    """Serve a tela de gerenciamento de usuários."""
+    return FileResponse(os.path.join(FRONTEND_DIR, "usuarios.html"))
+
+
 # ── Rotas da API ─────────────────────────────────────────────
 
 

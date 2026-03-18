@@ -1,0 +1,1516 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grupo Talk — Usuários</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --talk: #007575;
+    --talk-light: #00a0a0;
+    --talk-dim: #004f4f;
+    --talk-glow: rgba(0,117,117,0.15);
+    --bg: #080c0c;
+    --surface: #0e1515;
+    --surface2: #131e1e;
+    --border: rgba(0,117,117,0.2);
+    --border-bright: rgba(0,117,117,0.45);
+    --text: #e8f0f0;
+    --muted: #6a8585;
+    --sidebar: 240px;
+    --success: #00c896;
+    --warning: #f0a800;
+    --danger: #e05050;
+    --dot-color: rgba(0,117,117,0.25);
+    --dot-sidebar: rgba(0,117,117,0.18);
+    --topbar-bg: rgba(8,12,12,0.7);
+  }
+
+  body.light {
+    --bg: #f0f6f6;
+    --surface: #ffffff;
+    --surface2: #e8f2f2;
+    --border: rgba(0,117,117,0.18);
+    --border-bright: rgba(0,117,117,0.4);
+    --text: #0d2020;
+    --muted: #4a7575;
+    --talk-glow: rgba(0,117,117,0.1);
+    --talk-dim: #cce8e8;
+    --dot-color: rgba(0,117,117,0.12);
+    --dot-sidebar: rgba(0,117,117,0.1);
+    --topbar-bg: rgba(240,246,246,0.85);
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "DM Sans", sans-serif;
+    overflow: hidden;
+  }
+
+  /* ── LAYOUT ── */
+  .app { display: flex; height: 100vh; }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: var(--sidebar);
+    min-width: var(--sidebar);
+    height: 100vh;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    animation: fadeRight 0.6s ease both;
+  }
+
+  .sidebar::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle, var(--dot-sidebar) 1px, transparent 1px);
+    background-size: 28px 28px;
+    mask-image: linear-gradient(to bottom, black 0%, transparent 60%);
+    -webkit-mask-image: linear-gradient(to bottom, black 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .sidebar::after {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 200px;
+    background: radial-gradient(ellipse 100% 80% at 50% 0%, rgba(0,117,117,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .sidebar-brand {
+    padding: 28px 20px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: relative;
+    z-index: 1;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .brand-logo-box {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+
+  .brand-logo-box img {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+  }
+
+  .brand-info { display: flex; flex-direction: column; gap: 1px; }
+
+  .brand-name {
+    font-family: "Nunito", sans-serif;
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -0.01em;
+    line-height: 1;
+  }
+
+  .brand-sub {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  /* ── NAV ── */
+  .nav {
+    flex: 1;
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .nav-section-label {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 8px 8px 4px;
+    opacity: 0.6;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    text-decoration: none;
+    color: var(--muted);
+    font-size: 13.5px;
+    font-weight: 500;
+    position: relative;
+    border: 1px solid transparent;
+  }
+
+  .nav-item:hover {
+    background: rgba(0,117,117,0.06);
+    color: var(--text);
+    border-color: var(--border);
+  }
+
+  .nav-item.active {
+    background: var(--talk-glow);
+    color: var(--talk-light);
+    border-color: rgba(0,117,117,0.3);
+  }
+
+  .nav-item.active .nav-icon { color: var(--talk); opacity: 1; }
+
+  .nav-icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    opacity: 0.8;
+  }
+
+  .nav-badge {
+    margin-left: auto;
+    font-size: 10px;
+    font-weight: 700;
+    background: var(--talk);
+    color: #fff;
+    padding: 1px 6px;
+    border-radius: 100px;
+    font-family: "Nunito", sans-serif;
+  }
+
+  /* ── SIDEBAR FOOTER ── */
+  .sidebar-footer {
+    padding: 16px 12px;
+    border-top: 1px solid var(--border);
+    position: relative;
+    z-index: 1;
+  }
+
+  .user-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border-radius: 8px;
+    background: rgba(0,117,117,0.04);
+    border: 1px solid var(--border);
+  }
+
+  .user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: var(--talk-dim);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "Nunito", sans-serif;
+    font-weight: 800;
+    font-size: 13px;
+    color: var(--talk-light);
+    flex-shrink: 0;
+  }
+
+  .user-info { flex: 1; min-width: 0; }
+
+  .user-name {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .user-role {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .btn-logout {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.18s;
+    flex-shrink: 0;
+  }
+
+  .btn-logout:hover {
+    background: rgba(224,80,80,0.1);
+    border-color: rgba(224,80,80,0.3);
+    color: #e05050;
+  }
+
+  /* ── ÁREA PRINCIPAL ── */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .main::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle, var(--dot-color) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── TOPBAR ── */
+  .topbar {
+    height: 64px;
+    min-height: 64px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 32px;
+    gap: 16px;
+    position: relative;
+    z-index: 2;
+    background: var(--topbar-bg);
+    backdrop-filter: blur(8px);
+    animation: fadeDown 0.5s ease both;
+  }
+
+  .topbar-left { flex: 1; }
+
+  .topbar-greeting {
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 300;
+  }
+
+  .topbar-title {
+    font-family: "Nunito", sans-serif;
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .clock {
+    font-family: "Nunito", sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+
+  .status-badge {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 12px;
+    border-radius: 100px;
+    background: rgba(0,200,150,0.08);
+    border: 1px solid rgba(0,200,150,0.2);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--success);
+  }
+
+  .status-dot-pulse {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--success);
+    animation: pulse-green 2s ease infinite;
+  }
+
+  .btn-theme {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    font-size: 16px;
+  }
+
+  .btn-theme:hover {
+    background: var(--talk-glow);
+    border-color: var(--talk);
+  }
+
+  /* ── CONTEÚDO ── */
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 28px 32px 40px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .content::-webkit-scrollbar { width: 4px; }
+  .content::-webkit-scrollbar-track { background: transparent; }
+  .content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* ── PAGE HEADER ── */
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    animation: fadeUp 0.5s ease both;
+  }
+
+  .page-header-left {}
+
+  .page-title {
+    font-family: "Nunito", sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -0.02em;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .page-subtitle {
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 300;
+  }
+
+  .page-subtitle span {
+    color: var(--talk-light);
+    font-weight: 600;
+  }
+
+  .btn-novo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 20px;
+    height: 40px;
+    background: var(--talk);
+    border: none;
+    border-radius: 10px;
+    font-family: "Nunito", sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-novo::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0);
+    transition: background 0.2s;
+  }
+
+  .btn-novo:hover::before { background: rgba(255,255,255,0.1); }
+  .btn-novo:active { transform: scale(0.98); }
+
+  .btn-novo svg { flex-shrink: 0; }
+
+  /* ── TABELA ── */
+  .table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    animation: fadeUp 0.5s 0.1s ease both;
+  }
+
+  .table-header {
+    display: grid;
+    grid-template-columns: 52px 1fr 130px 120px 100px;
+    gap: 16px;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(0,117,117,0.04);
+  }
+
+  .th {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .th.center { text-align: center; }
+
+  .table-body { min-height: 80px; }
+
+  .table-row {
+    display: grid;
+    grid-template-columns: 52px 1fr 130px 120px 100px;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(0,117,117,0.07);
+    align-items: center;
+    transition: background 0.15s;
+    animation: fadeUp 0.3s ease both;
+  }
+
+  .table-row:last-child { border-bottom: none; }
+  .table-row:hover { background: rgba(0,117,117,0.03); }
+
+  /* ID */
+  .row-id {
+    font-family: "Nunito", sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--muted);
+    opacity: 0.6;
+  }
+
+  /* Usuário com avatar */
+  .row-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .row-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: var(--talk-dim);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "Nunito", sans-serif;
+    font-weight: 800;
+    font-size: 13px;
+    color: var(--talk-light);
+    flex-shrink: 0;
+    text-transform: uppercase;
+  }
+
+  body.light .row-avatar { background: #cce8e8; }
+
+  .row-username {
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  /* Badge de perfil */
+  .badge-perfil {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 100px;
+    font-size: 10px;
+    font-weight: 700;
+    font-family: "Nunito", sans-serif;
+    letter-spacing: 0.05em;
+  }
+
+  .badge-admin {
+    background: rgba(0,117,117,0.12);
+    color: var(--talk-light);
+    border: 1px solid rgba(0,117,117,0.3);
+  }
+
+  .badge-diretoria {
+    background: rgba(74,144,217,0.12);
+    color: #4a90d9;
+    border: 1px solid rgba(74,144,217,0.3);
+  }
+
+  .badge-logistica {
+    background: rgba(217,122,74,0.12);
+    color: #d97a4a;
+    border: 1px solid rgba(217,122,74,0.3);
+  }
+
+  /* Toggle ativo */
+  .toggle-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .toggle {
+    position: relative;
+    width: 36px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  .toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+  }
+
+  .toggle-track {
+    position: absolute;
+    inset: 0;
+    border-radius: 100px;
+    background: rgba(106,133,133,0.2);
+    border: 1px solid rgba(106,133,133,0.3);
+    cursor: pointer;
+    transition: all 0.25s;
+  }
+
+  .toggle-track::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--muted);
+    transition: all 0.25s;
+  }
+
+  .toggle input:checked + .toggle-track {
+    background: rgba(0,200,150,0.15);
+    border-color: rgba(0,200,150,0.4);
+  }
+
+  .toggle input:checked + .toggle-track::after {
+    left: 18px;
+    background: var(--success);
+  }
+
+  .toggle-label {
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--muted);
+  }
+
+  .toggle-label.ativo { color: var(--success); }
+
+  /* Ações */
+  .row-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: flex-end;
+  }
+
+  .btn-action {
+    width: 30px;
+    height: 30px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.18s;
+  }
+
+  .btn-action:hover {
+    background: var(--talk-glow);
+    border-color: var(--talk);
+    color: var(--talk-light);
+  }
+
+  /* Estado vazio */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    gap: 12px;
+    color: var(--muted);
+  }
+
+  .empty-state svg { opacity: 0.3; }
+
+  .empty-state p {
+    font-size: 13px;
+    font-weight: 300;
+    opacity: 0.7;
+  }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+
+  .modal-overlay.open {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .modal {
+    width: 100%;
+    max-width: 440px;
+    background: var(--surface);
+    border: 1px solid var(--border-bright);
+    border-radius: 14px;
+    overflow: hidden;
+    transform: translateY(16px) scale(0.98);
+    transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    position: relative;
+  }
+
+  .modal-overlay.open .modal {
+    transform: translateY(0) scale(1);
+  }
+
+  .modal::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(0,117,117,0.5), transparent);
+  }
+
+  .modal-header {
+    padding: 22px 24px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .modal-title {
+    font-family: "Nunito", sans-serif;
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+
+  .btn-close {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: all 0.18s;
+    line-height: 1;
+  }
+
+  .btn-close:hover {
+    background: rgba(224,80,80,0.1);
+    border-color: rgba(224,80,80,0.3);
+    color: var(--danger);
+  }
+
+  .modal-body { padding: 22px 24px; }
+
+  .form-group { margin-bottom: 18px; }
+
+  .form-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .form-input {
+    width: 100%;
+    height: 46px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0 14px;
+    font-size: 14px;
+    color: var(--text);
+    font-family: "DM Sans", sans-serif;
+    outline: none;
+    transition: all 0.2s;
+    caret-color: var(--talk);
+  }
+
+  .form-input:focus {
+    border-color: var(--talk);
+    box-shadow: 0 0 0 3px var(--talk-glow);
+  }
+
+  .form-input::placeholder { color: rgba(106,133,133,0.5); }
+
+  .form-input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .input-wrap { position: relative; }
+
+  .input-eye {
+    position: absolute;
+    right: 13px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 15px;
+    opacity: 0.6;
+    user-select: none;
+    transition: opacity 0.2s;
+  }
+
+  .input-eye:hover { opacity: 1; }
+  .form-input.has-eye { padding-right: 40px; }
+
+  .form-select {
+    width: 100%;
+    height: 46px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0 14px;
+    font-size: 14px;
+    color: var(--text);
+    font-family: "DM Sans", sans-serif;
+    outline: none;
+    transition: all 0.2s;
+    appearance: none;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 20 20' fill='%236a8585'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+  }
+
+  .form-select:focus {
+    border-color: var(--talk);
+    box-shadow: 0 0 0 3px var(--talk-glow);
+  }
+
+  .form-select option {
+    background: var(--surface);
+    color: var(--text);
+  }
+
+  /* Toggle dentro do modal */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+
+  .toggle-row-label {
+    font-size: 13.5px;
+    color: var(--text);
+    font-weight: 400;
+  }
+
+  .form-error {
+    font-size: 11.5px;
+    color: var(--danger);
+    margin-top: 6px;
+    display: none;
+  }
+
+  .form-hint {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 5px;
+    font-weight: 300;
+  }
+
+  .modal-footer {
+    padding: 0 24px 22px;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+
+  .btn-cancel {
+    height: 40px;
+    padding: 0 18px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    font-family: "Nunito", sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.18s;
+  }
+
+  .btn-cancel:hover {
+    background: rgba(106,133,133,0.08);
+    color: var(--text);
+  }
+
+  .btn-salvar {
+    height: 40px;
+    padding: 0 22px;
+    background: var(--talk);
+    border: none;
+    border-radius: 9px;
+    font-family: "Nunito", sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    cursor: pointer;
+    letter-spacing: 0.03em;
+    transition: all 0.18s;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-salvar::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0);
+    transition: background 0.2s;
+  }
+
+  .btn-salvar:hover::before { background: rgba(255,255,255,0.1); }
+  .btn-salvar:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  .btn-salvar .mini-spin {
+    width: 13px;
+    height: 13px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+  }
+
+  .btn-salvar.loading .mini-spin { display: block; }
+  .btn-salvar.loading .btn-txt { display: none; }
+
+  /* ── TOASTS ── */
+  .toast-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+  }
+
+  .toast {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 18px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #fff;
+    min-width: 240px;
+    max-width: 360px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    animation: slideInToast 0.3s cubic-bezier(0.34,1.56,0.64,1) both;
+    pointer-events: all;
+  }
+
+  .toast.ok {
+    background: linear-gradient(135deg, #006b5e, #00a896);
+    border: 1px solid rgba(0,200,150,0.3);
+  }
+
+  .toast.err {
+    background: linear-gradient(135deg, #7a1c1c, #c04040);
+    border: 1px solid rgba(224,80,80,0.3);
+  }
+
+  .toast.fade-out {
+    animation: fadeOutToast 0.3s ease forwards;
+  }
+
+  /* ── ANIMAÇÕES ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeRight {
+    from { opacity: 0; transform: translateX(-10px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes pulse-green {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(0,200,150,0.4); }
+    50%       { box-shadow: 0 0 0 4px rgba(0,200,150,0); }
+  }
+  @keyframes slideInToast {
+    from { opacity: 0; transform: translateX(20px) scale(0.95); }
+    to   { opacity: 1; transform: translateX(0) scale(1); }
+  }
+  @keyframes fadeOutToast {
+    to { opacity: 0; transform: translateX(10px) scale(0.97); }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-logo-box">
+        <img src="static/images/talk.png" alt="Logo Talk">
+      </div>
+      <div class="brand-info">
+        <span class="brand-name">Grupo Talk</span>
+        <span class="brand-sub">Sistema</span>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <span class="nav-section-label">Menu</span>
+
+      <a href="/dashboard" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
+        </svg>
+        Dashboard
+      </a>
+
+      <a href="/dashboard" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M2 5a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V5zm3.293 1.293a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 01-1.414-1.414L7.586 10 5.293 7.707a1 1 0 010-1.414zM11 12a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/>
+        </svg>
+        Scripts
+        <span class="nav-badge">8</span>
+      </a>
+
+      <a href="#" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z"/>
+          <path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z"/>
+        </svg>
+        WhatsApp
+      </a>
+
+      <a href="/usuarios" class="nav-item active">
+        <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/>
+        </svg>
+        Usuários
+      </a>
+
+      <a href="#" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11 4a1 1 0 10-2 0v4a1 1 0 102 0V7zm-3 1a1 1 0 10-2 0v3a1 1 0 102 0V8zM8 9a1 1 0 00-2 0v2a1 1 0 102 0V9z" clip-rule="evenodd"/>
+        </svg>
+        Logs
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-card">
+        <div class="user-avatar" id="userAvatar">G</div>
+        <div class="user-info">
+          <div class="user-name" id="userNome">Carregando...</div>
+          <div class="user-role" id="userPerfil"></div>
+        </div>
+        <button class="btn-logout" title="Sair" onclick="logout()">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clip-rule="evenodd"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── ÁREA PRINCIPAL ── -->
+  <div class="main">
+
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="topbar-greeting" id="greeting">Carregando...</div>
+        <div class="topbar-title">Usuários</div>
+      </div>
+      <div class="topbar-right">
+        <span class="clock" id="clock">--:--:--</span>
+        <button class="btn-theme" id="btnTema" onclick="alternarTema()" title="Alternar tema">☀️</button>
+        <div class="status-badge">
+          <div class="status-dot-pulse"></div>
+          Sistema Online
+        </div>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <!-- Header da página -->
+      <div class="page-header">
+        <div class="page-header-left">
+          <div class="page-title">Usuários do Sistema</div>
+          <div class="page-subtitle">
+            <span id="contadorUsuarios">0 usuários</span> cadastrados
+          </div>
+        </div>
+        <button class="btn-novo" onclick="abrirModalNovo()">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+          </svg>
+          Novo Usuário
+        </button>
+      </div>
+
+      <!-- Tabela -->
+      <div class="table-wrap">
+        <div class="table-header">
+          <div class="th">#</div>
+          <div class="th">Usuário</div>
+          <div class="th">Perfil</div>
+          <div class="th">Status</div>
+          <div class="th center">Ações</div>
+        </div>
+        <div class="table-body" id="tableBody">
+          <!-- Linhas renderizadas pelo JS -->
+          <div class="empty-state">
+            <svg width="40" height="40" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/>
+            </svg>
+            <p>Carregando usuários...</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL ── -->
+<div class="modal-overlay" id="modalOverlay" onclick="fecharModalFora(event)">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modalTitulo">Novo Usuário</span>
+      <button class="btn-close" onclick="fecharModal()">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Campo usuário (só no criar) -->
+      <div class="form-group" id="campoUsername">
+        <label class="form-label">Usuário</label>
+        <input type="text" class="form-input" id="inputUsername"
+               placeholder="nome.sobrenome" autocomplete="off">
+        <div class="form-error" id="errUsername">Preencha o nome de usuário.</div>
+      </div>
+
+      <!-- Senha -->
+      <div class="form-group">
+        <label class="form-label" id="labelSenha">Senha</label>
+        <div class="input-wrap">
+          <input type="password" class="form-input has-eye" id="inputSenha"
+                 placeholder="••••••••" autocomplete="new-password">
+          <span class="input-eye" onclick="toggleSenha()">👁</span>
+        </div>
+        <div class="form-error" id="errSenha">Preencha a senha.</div>
+        <div class="form-hint" id="hintSenha"></div>
+      </div>
+
+      <!-- Perfil -->
+      <div class="form-group">
+        <label class="form-label">Perfil</label>
+        <select class="form-select" id="inputPerfil">
+          <option value="admin">Admin</option>
+          <option value="diretoria">Diretoria</option>
+          <option value="logistica">Logística</option>
+        </select>
+      </div>
+
+      <!-- Status ativo (só no editar) -->
+      <div class="form-group" id="campoAtivo" style="display:none">
+        <label class="form-label">Status</label>
+        <div class="toggle-row">
+          <span class="toggle-row-label">Usuário ativo</span>
+          <label class="toggle">
+            <input type="checkbox" id="inputAtivo" checked>
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="fecharModal()">Cancelar</button>
+      <button class="btn-salvar" id="btnSalvar" onclick="salvar()">
+        <span class="btn-txt">Salvar</span>
+        <span class="mini-spin"></span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Toasts -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+  // ── Estado ──────────────────────────────────────────────────
+  let token = "";
+  let modoEdicao = false;   // false = criar, true = editar
+  let idEdicao = null;      // ID do usuário sendo editado
+
+  // ── Auth ─────────────────────────────────────────────────────
+  function verificarAuth() {
+    token = localStorage.getItem("token") || "";
+    if (!token) { window.location.href = "/"; return false; }
+
+    const username = localStorage.getItem("username") || "Usuário";
+    const perfil   = localStorage.getItem("perfil")   || "";
+    document.getElementById("userNome").textContent   = username;
+    document.getElementById("userPerfil").textContent = perfil.charAt(0).toUpperCase() + perfil.slice(1);
+    document.getElementById("userAvatar").textContent = username.charAt(0).toUpperCase();
+    return true;
+  }
+
+  function logout() {
+    if (confirm("Deseja sair do sistema?")) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("username");
+      localStorage.removeItem("perfil");
+      window.location.href = "/";
+    }
+  }
+
+  // ── API ──────────────────────────────────────────────────────
+  function api(method, path, body) {
+    return fetch(path, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token
+      },
+      body: body ? JSON.stringify(body) : undefined
+    }).then(res => res.json().then(data => ({ ok: res.ok, data })));
+  }
+
+  // ── Carregar usuários ────────────────────────────────────────
+  function carregarUsuarios() {
+    api("GET", "/api/usuarios/").then(({ ok, data }) => {
+      if (!ok) { toast("Erro ao carregar usuários.", "err"); return; }
+      renderizar(data);
+    }).catch(() => toast("Erro de conexão.", "err"));
+  }
+
+  function renderizar(usuarios) {
+    const body = document.getElementById("tableBody");
+    const ativos = usuarios.filter(u => u.ativo).length;
+    document.getElementById("contadorUsuarios").textContent =
+      ativos + " ativo" + (ativos !== 1 ? "s" : "");
+
+    if (!usuarios.length) {
+      body.innerHTML = `
+        <div class="empty-state">
+          <svg width="40" height="40" viewBox="0 0 20 20" fill="currentColor" style="color:var(--muted)">
+            <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/>
+          </svg>
+          <p>Nenhum usuário encontrado.</p>
+        </div>`;
+      return;
+    }
+
+    body.innerHTML = usuarios.map((u, i) => `
+      <div class="table-row" style="animation-delay:${i * 0.04}s">
+        <div class="row-id">${u.id}</div>
+        <div class="row-user">
+          <div class="row-avatar">${u.username.charAt(0).toUpperCase()}</div>
+          <span class="row-username">${u.username}</span>
+        </div>
+        <div>${badgePerfil(u.perfil)}</div>
+        <div>
+          <label class="toggle" title="${u.ativo ? 'Desativar' : 'Ativar'} usuário">
+            <input type="checkbox" ${u.ativo ? 'checked' : ''}
+              onchange="toggleAtivo(${u.id}, this.checked, '${u.username}')">
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+        <div class="row-actions">
+          <button class="btn-action" title="Editar usuário"
+            onclick='abrirModalEditar(${JSON.stringify(u)})'>
+            <svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  function badgePerfil(perfil) {
+    const map = {
+      admin:     ["badge-admin",     "Admin"],
+      diretoria: ["badge-diretoria", "Diretoria"],
+      logistica: ["badge-logistica", "Logística"],
+    };
+    const [cls, label] = map[perfil] || ["badge-admin", perfil];
+    return `<span class="badge-perfil ${cls}">${label}</span>`;
+  }
+
+  // ── Toggle ativo inline ──────────────────────────────────────
+  function toggleAtivo(id, ativo, username) {
+    api("PATCH", `/api/usuarios/${id}`, { ativo })
+      .then(({ ok, data }) => {
+        if (ok) {
+          toast(`${username} ${ativo ? "ativado" : "desativado"}.`, "ok");
+          carregarUsuarios();
+        } else {
+          toast(data.detail || "Erro ao atualizar.", "err");
+          carregarUsuarios(); // reverte o toggle visual
+        }
+      }).catch(() => toast("Erro de conexão.", "err"));
+  }
+
+  // ── Modal ────────────────────────────────────────────────────
+  function abrirModal() {
+    document.getElementById("modalOverlay").classList.add("open");
+    // limpa erros
+    document.querySelectorAll(".form-error").forEach(e => e.style.display = "none");
+  }
+
+  function fecharModal() {
+    document.getElementById("modalOverlay").classList.remove("open");
+  }
+
+  function fecharModalFora(e) {
+    if (e.target === document.getElementById("modalOverlay")) fecharModal();
+  }
+
+  function abrirModalNovo() {
+    modoEdicao = false;
+    idEdicao = null;
+    document.getElementById("modalTitulo").textContent = "Novo Usuário";
+    document.getElementById("campoUsername").style.display = "block";
+    document.getElementById("campoAtivo").style.display = "none";
+    document.getElementById("inputUsername").value = "";
+    document.getElementById("inputSenha").value = "";
+    document.getElementById("inputPerfil").value = "logistica";
+    document.getElementById("inputUsername").disabled = false;
+    document.getElementById("labelSenha").textContent = "Senha";
+    document.getElementById("hintSenha").textContent = "";
+    abrirModal();
+    setTimeout(() => document.getElementById("inputUsername").focus(), 100);
+  }
+
+  function abrirModalEditar(u) {
+    modoEdicao = true;
+    idEdicao = u.id;
+    document.getElementById("modalTitulo").textContent = "Editar — " + u.username;
+    document.getElementById("campoUsername").style.display = "none";
+    document.getElementById("campoAtivo").style.display = "block";
+    document.getElementById("inputSenha").value = "";
+    document.getElementById("inputPerfil").value = u.perfil;
+    document.getElementById("inputAtivo").checked = !!u.ativo;
+    document.getElementById("labelSenha").textContent = "Nova senha";
+    document.getElementById("hintSenha").textContent = "Deixe em branco para não alterar a senha.";
+    abrirModal();
+    setTimeout(() => document.getElementById("inputSenha").focus(), 100);
+  }
+
+  function toggleSenha() {
+    const inp = document.getElementById("inputSenha");
+    inp.type = inp.type === "password" ? "text" : "password";
+  }
+
+  // ── Salvar ───────────────────────────────────────────────────
+  function salvar() {
+    // Limpa erros
+    document.querySelectorAll(".form-error").forEach(e => e.style.display = "none");
+
+    const senha  = document.getElementById("inputSenha").value;
+    const perfil = document.getElementById("inputPerfil").value;
+    const btn    = document.getElementById("btnSalvar");
+
+    if (!modoEdicao) {
+      // CRIAR
+      const username = document.getElementById("inputUsername").value.trim();
+      if (!username) {
+        document.getElementById("errUsername").style.display = "block";
+        return;
+      }
+      if (!senha) {
+        document.getElementById("errSenha").style.display = "block";
+        return;
+      }
+
+      btn.classList.add("loading");
+      api("POST", "/api/usuarios/", { username, senha, perfil })
+        .then(({ ok, data }) => {
+          btn.classList.remove("loading");
+          if (ok) {
+            toast(`Usuário criado com sucesso.`, "ok");
+            fecharModal();
+            carregarUsuarios();
+          } else {
+            toast(data.detail || "Erro ao criar usuário.", "err");
+          }
+        }).catch(() => { btn.classList.remove("loading"); toast("Erro de conexão.", "err"); });
+
+    } else {
+      // EDITAR
+      const ativo = document.getElementById("inputAtivo").checked;
+      const body  = { perfil, ativo };
+      if (senha) body.senha = senha;
+
+      btn.classList.add("loading");
+      api("PATCH", `/api/usuarios/${idEdicao}`, body)
+        .then(({ ok, data }) => {
+          btn.classList.remove("loading");
+          if (ok) {
+            toast("Usuário atualizado.", "ok");
+            fecharModal();
+            carregarUsuarios();
+          } else {
+            toast(data.detail || "Erro ao atualizar.", "err");
+          }
+        }).catch(() => { btn.classList.remove("loading"); toast("Erro de conexão.", "err"); });
+    }
+  }
+
+  // ── Toast ────────────────────────────────────────────────────
+  function toast(msg, tipo) {
+    const c = document.getElementById("toastContainer");
+    const t = document.createElement("div");
+    t.className = "toast " + (tipo === "ok" ? "ok" : "err");
+    t.innerHTML = (tipo === "ok"
+      ? `<svg width="15" height="15" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>`
+      : `<svg width="15" height="15" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>`
+    ) + `<span>${msg}</span>`;
+    c.appendChild(t);
+    setTimeout(() => {
+      t.classList.add("fade-out");
+      setTimeout(() => t.remove(), 300);
+    }, 3000);
+  }
+
+  // ── Relógio e saudação ───────────────────────────────────────
+  function atualizarRelogio() {
+    const n = new Date();
+    const h = String(n.getHours()).padStart(2,"0");
+    const m = String(n.getMinutes()).padStart(2,"0");
+    const s = String(n.getSeconds()).padStart(2,"0");
+    document.getElementById("clock").textContent = `${h}:${m}:${s}`;
+  }
+
+  function atualizarSaudacao() {
+    const hora = new Date().getHours();
+    let s = "Boa noite";
+    if (hora >= 5 && hora < 12)  s = "Bom dia";
+    else if (hora >= 12 && hora < 18) s = "Boa tarde";
+    const nome = localStorage.getItem("username") || "Guilherme";
+    document.getElementById("greeting").textContent = s + ", " + nome;
+  }
+
+  // ── Tema ─────────────────────────────────────────────────────
+  function alternarTema() {
+    const isLight = document.body.classList.toggle("light");
+    document.getElementById("btnTema").textContent = isLight ? "🌙" : "☀️";
+    localStorage.setItem("tema", isLight ? "light" : "dark");
+  }
+
+  function restaurarTema() {
+    if (localStorage.getItem("tema") === "light") {
+      document.body.classList.add("light");
+      document.getElementById("btnTema").textContent = "🌙";
+    }
+  }
+
+  // ── Keyboard ─────────────────────────────────────────────────
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape") fecharModal();
+    if (e.key === "Enter" && document.getElementById("modalOverlay").classList.contains("open")) {
+      salvar();
+    }
+  });
+
+  // ── Init ─────────────────────────────────────────────────────
+  if (verificarAuth()) {
+    atualizarSaudacao();
+    atualizarRelogio();
+    restaurarTema();
+    setInterval(atualizarRelogio, 1000);
+    carregarUsuarios();
+  }
+</script>
+
+</body>
+</html>

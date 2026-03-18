@@ -19,7 +19,7 @@ from auth import gerar_hash, obter_usuario_atual
 from database import get_conn
 
 # APIRouter agrupa as rotas de usuário para importar no main.py
-router = APIRouter(prefix="/usuarios", tags=["Usuários"])
+router = APIRouter(prefix="/api/usuarios", tags=["Usuários"])
 
 
 # ── Modelos de dados ─────────────────────────────────────────

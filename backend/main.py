@@ -1,9 +1,5 @@
 # main.py — Coração do sistema: servidor FastAPI
 
-# FastAPI de framework web que recebe as requisições do
-# navegador e devolve respostas. É aqui que ficam todas as
-# "rotas" (URLs) que o frontend vai chamar.
-#
 # Rotas disponíveis:
 #   POST /login            → autentica e retorna token JWT
 #   GET  /me               → retorna dados do usuário logado
@@ -18,15 +14,17 @@ import asyncio
 from datetime import datetime
 
 from fastapi import FastAPI, HTTPException, Depends, WebSocket, WebSocketDisconnect
-from fastapi.middleware.cors import CORSMiddleware  # permite o frontend acessar o backend
-from fastapi.staticfiles import StaticFiles          # serve os arquivos HTML/CSS/JS
+from fastapi.middleware.cors import (
+    CORSMiddleware,
+)  # permite o frontend acessar o backend
+from fastapi.staticfiles import StaticFiles  # serve os arquivos HTML/CSS/JS
 from fastapi.responses import FileResponse
-from pydantic import BaseModel                       # valida os dados recebidos nas requisições
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from pydantic import BaseModel  # valida os dados recebidos nas requisições
 from dotenv import load_dotenv
 
-from auth import autenticar_usuario, criar_token, obter_usuario_atual
+from auth import autenticar_usuario, criar_token, verificar_token
 from database import get_conn, init_db
-from users import router as users_router
 
 # Carrega variáveis do .env
 load_dotenv()
@@ -37,9 +35,6 @@ init_db()
 
 # Cria a aplicação FastAPI
 app = FastAPI(title="Talk System", version="1.0.0")
-
-# Registra as rotas de usuários (prefixo /usuarios)
-app.include_router(users_router)
 
 # ── CORS ────────────────────────────────────────────────────
 # Permite que o frontend (HTML rodando no navegador) acesse o backend
@@ -60,6 +55,30 @@ app.mount(
     StaticFiles(directory=os.path.join(FRONTEND_DIR, "static")),
     name="static",
 )
+
+# ── Segurança ────────────────────────────────────────────────
+# HTTPBearer lê o token JWT do cabeçalho Authorization da requisição
+security = HTTPBearer()
+
+
+def obter_usuario_atual(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> dict:
+    """
+    Função de proteção: verifica se o token JWT é válido.
+    Usada como dependência nas rotas protegidas (Depends).
+    Se o token for inválido, retorna erro 401 (não autorizado).
+    """
+    token = credentials.credentials  # pega o token do cabeçalho
+    usuario = verificar_token(token)
+
+    if not usuario:
+        raise HTTPException(
+            status_code=401, detail="Token inválido ou expirado. Faça login novamente."
+        )
+
+    return usuario
+
 
 # ── Scripts disponíveis ──────────────────────────────────────
 # Cada script tem: nome, arquivo .py, perfis que podem executar

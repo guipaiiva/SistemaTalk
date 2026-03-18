@@ -25,6 +25,7 @@ from dotenv import load_dotenv
 
 from auth import autenticar_usuario, criar_token, verificar_token
 from database import get_conn, init_db
+from users import router as users_router
 
 # Carrega variáveis do .env
 load_dotenv()
@@ -35,6 +36,9 @@ init_db()
 
 # Cria a aplicação FastAPI
 app = FastAPI(title="Talk System", version="1.0.0")
+
+# Registra as rotas de usuários (prefixo /usuarios)
+app.include_router(users_router)
 
 # ── CORS ────────────────────────────────────────────────────
 # Permite que o frontend (HTML rodando no navegador) acesse o backend

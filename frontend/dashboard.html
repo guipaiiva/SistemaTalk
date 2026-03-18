@@ -826,10 +826,10 @@
 
     <div class="sidebar-footer">
       <div class="user-card">
-        <div class="user-avatar">G</div>
+        <div class="user-avatar" id="userAvatar">G</div>
         <div class="user-info">
-          <div class="user-name">Guilherme</div>
-          <div class="user-role">Admin</div>
+          <div class="user-name" id="userNome">Guilherme</div>
+          <div class="user-role" id="userPerfil">Admin</div>
         </div>
         <button class="btn-logout" title="Sair" onclick="logout()">
           <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
@@ -1159,11 +1159,6 @@
     if (linhas.length > 5) linhas[linhas.length - 1].remove();
   }
 
-  // Logout
-  function logout() {
-    if (confirm("Deseja sair do sistema?")) window.location.href = "index.html";
-  }
-
   // Alternar tema claro/escuro
   function alternarTema() {
     const body = document.body;
@@ -1186,11 +1181,44 @@
     }
   }
 
+  // Verifica se o usuário está logado (tem token salvo)
+  function verificarAuth() {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      // Sem token → volta para o login
+      window.location.href = "/";
+      return false;
+    }
+    // Preenche o nome do usuário na sidebar
+    const username = localStorage.getItem("username") || "Usuário";
+    const perfil   = localStorage.getItem("perfil")   || "";
+    const el = document.getElementById("userNome");
+    const pe = document.getElementById("userPerfil");
+    if (el) el.textContent = username;
+    if (pe) pe.textContent = perfil.charAt(0).toUpperCase() + perfil.slice(1);
+    // Atualiza a inicial do avatar
+    const av = document.getElementById("userAvatar");
+    if (av) av.textContent = username.charAt(0).toUpperCase();
+    return true;
+  }
+
+  // Logout limpa os dados e volta ao login
+  function logout() {
+    if (confirm("Deseja sair do sistema?")) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("username");
+      localStorage.removeItem("perfil");
+      window.location.href = "/";
+    }
+  }
+
   // Init
-  atualizarSaudacao();
-  atualizarRelogio();
-  restaurarTema();
-  setInterval(atualizarRelogio, 1000);
+  if (verificarAuth()) {
+    atualizarSaudacao();
+    atualizarRelogio();
+    restaurarTema();
+    setInterval(atualizarRelogio, 1000);
+  }
 </script>
 
 </body>

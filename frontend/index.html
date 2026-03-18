@@ -475,12 +475,31 @@
     err.style.display = "none";
     btn.classList.add("loading");
 
-    // Aqui vai a chamada para o backend
-    setTimeout(() => {
+    // Chama o backend para autenticar
+    fetch("/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: user, senha: pwd })
+    })
+    .then(res => res.json().then(data => ({ ok: res.ok, data })))
+    .then(({ ok, data }) => {
+      btn.classList.remove("loading");
+      if (ok) {
+        // Salva o token e redireciona para o dashboard
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("username", data.username);
+        localStorage.setItem("perfil", data.perfil);
+        window.location.href = "/dashboard";
+      } else {
+        err.style.display = "block";
+        err.textContent = data.detail || "Usuário ou senha incorretos.";
+      }
+    })
+    .catch(() => {
       btn.classList.remove("loading");
       err.style.display = "block";
-      err.textContent = "Backend não conectado ainda.";
-    }, 1500);
+      err.textContent = "Não foi possível conectar ao servidor.";
+    });
   }
 
   document.addEventListener("keydown", e => {

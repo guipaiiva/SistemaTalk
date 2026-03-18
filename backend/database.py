@@ -1,6 +1,6 @@
 import sqlite3
-import hashlib
 import os
+import bcrypt  # mesmo algoritmo usado no auth.py
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "users.db")
 
@@ -36,8 +36,8 @@ def init_db():
         )
     """)
 
-    # Cria usuário admin padrão se não existir
-    senha_hash = hashlib.sha256("admin123".encode()).hexdigest()
+    # Cria usuário admin padrão se não existir (hash bcrypt, igual ao auth.py)
+    senha_hash = bcrypt.hashpw("admin123".encode(), bcrypt.gensalt()).decode()
     c.execute("""
         INSERT OR IGNORE INTO users (username, password_hash, perfil)
         VALUES (?, ?, 'admin')

@@ -1,11 +1,16 @@
 # auth.py — Responsável pelo login e geração de tokens JWT
 
 import os
+import bcrypt                            # biblioteca para hash seguro de senhas
 from datetime import datetime, timedelta
 from jose import JWTError, jwt          # biblioteca para criar e ler tokens JWT
-from passlib.context import CryptContext # biblioteca para verificar senhas com hash
 from dotenv import load_dotenv           # biblioteca para ler o arquivo .env
+from fastapi import HTTPException, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from database import get_conn            # função que abre conexão com o banco SQLite
+
+# HTTPBearer lê o token JWT do cabeçalho Authorization da requisição
+security = HTTPBearer()
 
 # Carrega as variáveis do arquivo .env para não deixar chaves expostas no código
 load_dotenv()
@@ -20,11 +25,6 @@ ALGORITHM = "HS256"
 # Tempo de validade do token: 8 horas (tempo de um turno de trabalho)
 EXPIRE_HOURS = 8
 
-# ── Configuração do Hash de Senha ───────────────────────────
-# bcrypt é um algoritmo seguro para armazenar senhas
-# Nunca salvamos a senha pura no banco, apenas o hash dela
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 
 # ── Funções de Senha ────────────────────────────────────────
 
@@ -34,7 +34,7 @@ def verificar_senha(senha_digitada: str, hash_salvo: str) -> bool:
     Compara a senha digitada pelo usuário com o hash salvo no banco.
     Retorna True se bater, False se não bater.
     """
-    return pwd_context.verify(senha_digitada, hash_salvo)
+    return bcrypt.checkpw(senha_digitada.encode(), hash_salvo.encode())
 
 
 def gerar_hash(senha: str) -> str:
@@ -42,7 +42,8 @@ def gerar_hash(senha: str) -> str:
     Transforma uma senha pura em hash seguro para salvar no banco.
     Ex: "admin123" → "$2b$12$abc...xyz"
     """
-    return pwd_context.hash(senha)
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(senha.encode(), salt).decode()
 
 
 # ── Funções de Token ────────────────────────────────────────
@@ -110,3 +111,20 @@ def autenticar_usuario(username: str, senha: str) -> dict | None:
         "username": usuario["username"],
         "perfil": usuario["perfil"],
     }
+
+
+# ── Dependência de proteção de rotas ────────────────────────
+
+def obter_usuario_atual(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
+    """
+    Função usada para proteger rotas do FastAPI.
+    Lê o token JWT do cabeçalho, valida e retorna os dados do usuário.
+    Se o token for inválido ou expirado, retorna erro 401.
+    """
+    token = credentials.credentials  # extrai o token do cabeçalho Authorization
+    usuario = verificar_token(token)
+
+    if not usuario:
+        raise HTTPException(status_code=401, detail="Token inválido ou expirado. Faça login novamente.")
+
+    return usuario

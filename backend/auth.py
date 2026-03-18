@@ -1,19 +1,18 @@
-# ============================================================
 # auth.py — Responsável pelo login e geração de tokens JWT
-# ============================================================
-# JWT (JSON Web Token) é um "crachá digital" que o sistema
-# entrega ao usuário após o login. Nas próximas requisições,
-# o usuário apresenta esse crachá para provar que está logado.
-# ============================================================
 
+import os
 from datetime import datetime, timedelta
 from jose import JWTError, jwt          # biblioteca para criar e ler tokens JWT
 from passlib.context import CryptContext # biblioteca para verificar senhas com hash
+from dotenv import load_dotenv           # biblioteca para ler o arquivo .env
 from database import get_conn            # função que abre conexão com o banco SQLite
 
+# Carrega as variáveis do arquivo .env para não deixar chaves expostas no código
+load_dotenv()
+
 # ── Configurações do Token ──────────────────────────────────
-# Chave secreta usada para assinar o token (troque em produção!)
-SECRET_KEY = "grupotalk-chave-secreta-2025"
+# Lê a chave secreta do .env (nunca deixar fixo no código!)
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 # Algoritmo de criptografia do token
 ALGORITHM = "HS256"
@@ -28,6 +27,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 # ── Funções de Senha ────────────────────────────────────────
+
 
 def verificar_senha(senha_digitada: str, hash_salvo: str) -> bool:
     """
@@ -46,6 +46,7 @@ def gerar_hash(senha: str) -> str:
 
 
 # ── Funções de Token ────────────────────────────────────────
+
 
 def criar_token(dados: dict) -> str:
     """
@@ -80,6 +81,7 @@ def verificar_token(token: str) -> dict | None:
 
 # ── Autenticação Principal ──────────────────────────────────
 
+
 def autenticar_usuario(username: str, senha: str) -> dict | None:
     """
     Verifica se o usuário existe no banco e se a senha está correta.
@@ -106,5 +108,5 @@ def autenticar_usuario(username: str, senha: str) -> dict | None:
     return {
         "id": usuario["id"],
         "username": usuario["username"],
-        "perfil": usuario["perfil"]
+        "perfil": usuario["perfil"],
     }

@@ -9,11 +9,10 @@
 # ============================================================
 
 import os
-import subprocess
 import asyncio
 from datetime import datetime
 
-from fastapi import FastAPI, HTTPException, Depends, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Depends, WebSocket, WebSocketDisconnect, Query
 from fastapi.middleware.cors import (
     CORSMiddleware,
 )  # permite o frontend acessar o backend
@@ -228,34 +227,78 @@ def listar_scripts(usuario: dict = Depends(obter_usuario_atual)):
 
 
 @app.post("/scripts/{nome}")
-def executar_script(nome: str, usuario: dict = Depends(obter_usuario_atual)):
+def autorizar_script(nome: str, usuario: dict = Depends(obter_usuario_atual)):
     """
-    Executa um script pelo nome.
-    Verifica se o usuário tem permissão antes de executar.
-    Registra a execução no banco de dados.
+    Valida permissão e registra a intenção de executar o script.
+    A execução real acontece no WebSocket /ws/logs/{nome}.
     """
-    # Verifica se o script existe
     if nome not in SCRIPTS:
         raise HTTPException(status_code=404, detail=f"Script '{nome}' não encontrado.")
 
     script_info = SCRIPTS[nome]
 
-    # Verifica se o perfil do usuário tem permissão para esse script
     if usuario["perfil"] not in script_info["perfis"]:
         raise HTTPException(
             status_code=403,
             detail="Seu perfil não tem permissão para executar esse script.",
         )
 
-    # Caminho completo do arquivo .py
     caminho = os.path.join(SCRIPTS_DIR, script_info["arquivo"])
-
     if not os.path.exists(caminho):
         raise HTTPException(
             status_code=500, detail=f"Arquivo do script não encontrado: {caminho}"
         )
 
-    # Registra o início da execução no banco
+    return {
+        "ok": True,
+        "label": script_info["label"],
+        "usuario": usuario["username"],
+    }
+
+
+# ── WebSocket — Logs em tempo real ──────────────────────────
+
+
+@app.websocket("/ws/logs/{nome}")
+async def websocket_logs(
+    websocket: WebSocket,
+    nome: str,
+    token: str = Query(...),  # token JWT recebido como ?token=xxx
+):
+    """
+    WebSocket que valida o token, inicia o script e transmite
+    cada linha de print() em tempo real para o frontend.
+    """
+    await websocket.accept()
+
+    # ── Valida o token ───────────────────────────────────────
+    usuario = verificar_token(token)
+    if not usuario:
+        await websocket.send_text("❌ Sessão inválida ou expirada. Faça login novamente.")
+        await websocket.close()
+        return
+
+    # ── Valida o script ──────────────────────────────────────
+    if nome not in SCRIPTS:
+        await websocket.send_text("❌ Script não encontrado.")
+        await websocket.close()
+        return
+
+    script_info = SCRIPTS[nome]
+
+    # ── Valida permissão ─────────────────────────────────────
+    if usuario["perfil"] not in script_info["perfis"]:
+        await websocket.send_text("❌ Seu perfil não tem permissão para executar esse script.")
+        await websocket.close()
+        return
+
+    caminho = os.path.join(SCRIPTS_DIR, script_info["arquivo"])
+    if not os.path.exists(caminho):
+        await websocket.send_text(f"❌ Arquivo do script não encontrado: {caminho}")
+        await websocket.close()
+        return
+
+    # ── Registra início no banco ─────────────────────────────
     conn = get_conn()
     c = conn.cursor()
     inicio = datetime.now().isoformat()
@@ -267,58 +310,47 @@ def executar_script(nome: str, usuario: dict = Depends(obter_usuario_atual)):
     conn.commit()
     conn.close()
 
-    # Executa o script como subprocesso (em segundo plano)
-    subprocess.Popen([PYTHON, caminho])
-
-    return {
-        "mensagem": f"Script '{script_info['label']}' iniciado com sucesso.",
-        "execucao_id": execucao_id,
-    }
-
-
-# ── WebSocket — Logs em tempo real ──────────────────────────
-
-
-@app.websocket("/ws/logs/{nome}")
-async def websocket_logs(websocket: WebSocket, nome: str):
-    """
-    Conexão WebSocket que transmite os logs de um script em tempo real.
-    O frontend conecta aqui e recebe cada linha de saída do script.
-    """
-    await websocket.accept()
-
-    # Verifica se o script existe
-    if nome not in SCRIPTS:
-        await websocket.send_text("❌ Script não encontrado.")
-        await websocket.close()
-        return
-
-    caminho = os.path.join(SCRIPTS_DIR, SCRIPTS[nome]["arquivo"])
-
+    status_final = "erro"
     try:
-        # Inicia o script capturando a saída linha por linha
+        # ── Inicia o script e captura a saída linha por linha ─
         processo = await asyncio.create_subprocess_exec(
             PYTHON,
             caminho,
-            stdout=asyncio.subprocess.PIPE,  # captura o print() do script
-            stderr=asyncio.subprocess.STDOUT,  # junta erros com saída normal
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,  # stderr junto com stdout
         )
 
-        # Envia cada linha de log para o frontend via WebSocket
         async for linha in processo.stdout:
             texto = linha.decode("utf-8", errors="replace").rstrip()
             if texto:
                 await websocket.send_text(texto)
 
         await processo.wait()
-        await websocket.send_text("✅ Script finalizado.")
+
+        if processo.returncode == 0:
+            status_final = "concluido"
+            await websocket.send_text("✅ Script finalizado.")
+        else:
+            await websocket.send_text(f"❌ Script encerrou com código {processo.returncode}.")
 
     except WebSocketDisconnect:
-        # Usuário fechou o navegador antes de terminar
-        pass
+        # Usuário fechou o navegador — cancela o processo se ainda estiver rodando
+        try:
+            processo.kill()
+        except Exception:
+            pass
     except Exception as e:
-        await websocket.send_text(f"❌ Erro: {str(e)}")
+        await websocket.send_text(f"❌ Erro interno: {str(e)}")
     finally:
+        # ── Registra fim no banco ────────────────────────────
+        conn = get_conn()
+        c = conn.cursor()
+        c.execute(
+            "UPDATE execucoes SET status = ?, fim = ? WHERE id = ?",
+            (status_final, datetime.now().isoformat(), execucao_id),
+        )
+        conn.commit()
+        conn.close()
         await websocket.close()
 
 

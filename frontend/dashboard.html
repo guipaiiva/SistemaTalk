@@ -1381,8 +1381,7 @@
   // Executa script: chama API e abre painel de logs em tempo real
   function executar(btn, nome) {
     if (btn.classList.contains("running")) return;
-    const token = localStorage.getItem("token");
-    if (!token) { window.location.href = "/"; return; }
+    if (!localStorage.getItem("token")) { irParaLogin(); return; }
 
     const info = SCRIPTS_MAP[nome];
     if (!info) return;
@@ -1397,10 +1396,7 @@
     abrirLog(nome, info.emoji);
 
     // Chama a API para iniciar o script
-    fetch(`/scripts/${info.slug}`, {
-      method: "POST",
-      headers: { "Authorization": "Bearer " + token }
-    })
+    apiFetch(`/scripts/${info.slug}`, { method: "POST" })
     .then(res => res.json().then(data => ({ ok: res.ok, data })))
     .then(({ ok, data }) => {
       if (!ok) {
@@ -1408,9 +1404,10 @@
         finalizarExecucao(false, nome);
         return;
       }
-      // Conecta WebSocket para logs em tempo real
+      // Conecta WebSocket passando o token como query param para autenticação
       const proto = location.protocol === "https:" ? "wss" : "ws";
-      const ws = new WebSocket(`${proto}://${location.host}/ws/logs/${info.slug}`);
+      const tkn = localStorage.getItem("token");
+      const ws = new WebSocket(`${proto}://${location.host}/ws/logs/${info.slug}?token=${tkn}`);
       wsAtual = ws;
 
       ws.onmessage = (e) => {
@@ -1577,44 +1574,71 @@
     }
   }
 
-  // Verifica se o usuário está logado (tem token salvo)
+  // Limpa sessão e vai para o login
+  function irParaLogin(motivo) {
+    localStorage.removeItem("token");
+    localStorage.removeItem("username");
+    localStorage.removeItem("perfil");
+    // Passa o motivo na URL para exibir no login
+    window.location.href = motivo === "expirado" ? "/?sessao=expirada" : "/";
+  }
+
+  // Wrapper de fetch: adiciona token e trata 401 automaticamente
+  // Sempre resolve com { ok, data } para facilitar o uso
+  function apiFetch(url, options = {}) {
+    const token = localStorage.getItem("token");
+    options.headers = {
+      ...(options.headers || {}),
+      "Authorization": "Bearer " + token,
+      "Content-Type": "application/json",
+    };
+    return fetch(url, options)
+      .then(res => {
+        if (res.status === 401) {
+          irParaLogin("expirado");
+          return Promise.reject("sessao_expirada");
+        }
+        return res.json().then(data => ({ ok: res.ok, data }));
+      });
+  }
+
+  // Verifica se o usuário está logado e valida o token com o backend
   function verificarAuth() {
     const token = localStorage.getItem("token");
-    if (!token) {
-      // Sem token → volta para o login
-      window.location.href = "/";
-      return false;
-    }
-    // Preenche o nome do usuário na sidebar
+    if (!token) { irParaLogin(); return; }
+
+    // Preenche sidebar com dados salvos enquanto valida
     const username = localStorage.getItem("username") || "Usuário";
     const perfil   = localStorage.getItem("perfil")   || "";
     const el = document.getElementById("userNome");
     const pe = document.getElementById("userPerfil");
+    const av = document.getElementById("userAvatar");
     if (el) el.textContent = username;
     if (pe) pe.textContent = perfil.charAt(0).toUpperCase() + perfil.slice(1);
-    // Atualiza a inicial do avatar
-    const av = document.getElementById("userAvatar");
     if (av) av.textContent = username.charAt(0).toUpperCase();
-    return true;
+
+    // Valida o token com o backend — se expirou, redireciona
+    apiFetch("/me").then(res => {
+      if (!res.ok) irParaLogin("expirado");
+    }).catch(err => {
+      if (err !== "sessao_expirada") {
+        // Erro de rede — continua na página, não redireciona
+        console.warn("Não foi possível validar sessão com o servidor.");
+      }
+    });
   }
 
   // Logout limpa os dados e volta ao login
   function logout() {
-    if (confirm("Deseja sair do sistema?")) {
-      localStorage.removeItem("token");
-      localStorage.removeItem("username");
-      localStorage.removeItem("perfil");
-      window.location.href = "/";
-    }
+    if (confirm("Deseja sair do sistema?")) irParaLogin();
   }
 
   // Init
-  if (verificarAuth()) {
-    atualizarSaudacao();
-    atualizarRelogio();
-    restaurarTema();
-    setInterval(atualizarRelogio, 1000);
-  }
+  verificarAuth();
+  atualizarSaudacao();
+  atualizarRelogio();
+  restaurarTema();
+  setInterval(atualizarRelogio, 1000);
 </script>
 
 </body>
